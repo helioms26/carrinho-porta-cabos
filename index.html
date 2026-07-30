@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Carrinho porta-cabos — modelo 3D v10</title>
+<title>Carrinho porta-cabos — modelo 3D v11 (A vs B)</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -82,7 +82,8 @@ background:#0f1116ee;border:1px solid #2e323d;border-radius:10px;padding:7px 9px
 <span class="sw" style="background:#b8c0cc"></span>parafusos &nbsp;
 <span class="sw" style="background:#cfd6e0"></span>roldanas<br>
 <span class="sw" style="background:#4a5568"></span>cabo &nbsp;
-<span class="sw" style="background:#3aa7e0"></span>sela &nbsp;<span class="sw" style="background:#8e6ad6"></span>envelope 90×55×55
+<span class="sw" style="background:#3aa7e0"></span>sela &nbsp;<span class="sw" style="background:#8e6ad6"></span>envelope<br>
+<span class="sw" style="background:#6fbf73"></span>carrinho B (referência)
 </div>
 <div id="selbadge"></div>
 <div id="hud">
@@ -211,6 +212,18 @@ girando em torno do centro comum.
 <div class="row"><label>furo externo: do centro</label><input type="range" id="furo_2" min="8" max="75" step="1" value="22"><span class="v"></span></div>
 <div class="row"><label>Ø dos furos</label><input type="range" id="furo_D" min="3" max="14" step="0.5" value="7"><span class="v"></span></div>
 <div class="row"><label>altura do garfo</label><input type="range" id="garfo_H" min="6" max="40" step="1" value="18"><span class="v"></span></div>
+<h2 style="color:#6fbf73;border-color:#2d5c30">Carrinho B — desenho de referência</h2>
+<p class="sub">Modelo de comparação, em verde. Cotas do desenho que você mandou.</p>
+<div class="row"><label>largura total</label><input type="range" id="b_L" min="40" max="140" step="1" value="85"><span class="v"></span></div>
+<div class="row"><label>altura do corpo</label><input type="range" id="b_H" min="10" max="50" step="1" value="20"><span class="v"></span></div>
+<div class="row"><label>profundidade (topo)</label><input type="range" id="b_D" min="12" max="60" step="1" value="28"><span class="v"></span></div>
+<div class="row"><label>largura da sela</label><input type="range" id="b_selaL" min="30" max="110" step="1" value="63"><span class="v"></span></div>
+<div class="row"><label>profundidade da sela</label><input type="range" id="b_selaD" min="15" max="70" step="1" value="33"><span class="v"></span></div>
+<div class="row"><label>haste até a sela</label><input type="range" id="b_haste" min="10" max="80" step="1" value="44"><span class="v"></span></div>
+<div class="row"><label>Ø das roldanas de B</label><input type="range" id="b_roda" min="10" max="40" step="0.5" value="22"><span class="v"></span></div>
+<div class="row"><label>largura das roldanas</label><input type="range" id="b_rodaW" min="4" max="25" step="0.5" value="9"><span class="v"></span></div>
+<div class="row"><label>entre-eixos de B</label><input type="range" id="b_ent" min="20" max="110" step="1" value="55"><span class="v"></span></div>
+<div class="row"><label>afastamento A ↔ B</label><input type="range" id="b_off" min="-200" max="200" step="5" value="120"><span class="v"></span></div>
 <h2>Roldana e cabo (já medidos)</h2>
 <div class="row"><label>Ø externo</label><input type="range" id="roda_De" min="20" max="55" step="0.5" value="35"><span class="v"></span></div>
 <div class="row"><label>Ø da garganta</label><input type="range" id="roda_Dg" min="10" max="40" step="0.5" value="20"><span class="v"></span></div>
@@ -222,6 +235,7 @@ girando em torno do centro comum.
 <label class="chk"><input type="checkbox" id="show_trav" checked> travessa</label>
 <label class="chk"><input type="checkbox" id="show_sela" checked> chapa creme + sela azul</label>
 <label class="chk"><input type="checkbox" id="show_env" checked> envelope do catálogo 90×55×55</label>
+<label class="chk"><input type="checkbox" id="show_b" checked> carrinho B (referência, verde)</label>
 <h2>Ficha do fabricante</h2>
 <p class="sub" style="line-height:1.75">
 <b>WS1F85-50-90-K</b> · códigos 0310070/00 e /01<br>
@@ -239,18 +253,20 @@ peso do conjunto <b>130 g</b> · tolerância geral ±0,3 mm
 const P={};
 const dims=["corpo_H","corpo_Wt","corpo_Wb","corpo_E","roda_Y","fenda_W",
 "trav_L","trav_B","trav_W","trav_H","sep","furo_1","furo_2","furo_D","garfo_H",
-"roda_De","roda_Dg","roda_larg","cabo_D"];
-const flags=["show_roda","show_cabo","show_trav","show_sela","show_env"];
+"roda_De","roda_Dg","roda_larg","cabo_D",
+"b_L","b_H","b_D","b_selaL","b_selaD","b_haste","b_roda","b_rodaW","b_ent","b_off"];
+const flags=["show_roda","show_cabo","show_trav","show_sela","show_env","show_b"];
 const VERSAO="v9";
 const ENV={A:90,B:55,C:55};
 const SKEYS=["tx","ty","tz"];
 const NOME={corpoA:"Corpo A (roldana 1)", corpoB:"Corpo B (roldana 2)",
 trav:"Travessa em cruz", chapa:"Chapa creme (não imprime)",
 sela:"Sela azul (não imprime)", cabo:"Cabo de aço",
-pinoA:"Parafuso da articulação A", pinoB:"Parafuso da articulação B"};
-const PECAS=["corpoA","corpoB","trav","chapa","sela","cabo","pinoA","pinoB"];
+pinoA:"Parafuso da articulação A", pinoB:"Parafuso da articulação B",
+bCorpo:"[B] Corpo do carrinho", bSela:"[B] Sela / arco"};
+const PECAS=["corpoA","corpoB","trav","chapa","sela","cabo","pinoA","pinoB","bCorpo","bSela"];
 const ST={ corpoA:z(), corpoB:z(), trav:z(), chapa:z(), sela:z(),
-cabo:z(), pinoA:z(), pinoB:z() };
+cabo:z(), pinoA:z(), pinoB:z(), bCorpo:z(), bSela:z() };
 const OFF=new Set();
 function z(){ return {q:[0,0,0,1],tx:0,ty:0,tz:0}; }
 const view=document.getElementById("view");
@@ -271,11 +287,13 @@ roda : new THREE.MeshStandardMaterial({color:0xcfd6e0,roughness:.35,metalness:.3
 cabo : new THREE.MeshStandardMaterial({color:0x4a5568,roughness:.5,metalness:.7}),
 pinoA: new THREE.MeshStandardMaterial({color:0xb8c0cc,roughness:.3,metalness:.8}),
 pinoB: new THREE.MeshStandardMaterial({color:0xb8c0cc,roughness:.3,metalness:.8}),
+bCorpo:new THREE.MeshStandardMaterial({color:0x6fbf73,roughness:.55}),
+bSela: new THREE.MeshStandardMaterial({color:0x4f9d55,roughness:.55}),
 sela : new THREE.MeshStandardMaterial({color:0x3aa7e0,roughness:.6}),
 chapa: new THREE.MeshStandardMaterial({color:0xe8e0c4,roughness:.8})
 };
 const root=new THREE.Group(); scene.add(root);
-const G={corpoA:null,corpoB:null,trav:null,chapa:null,sela:null,cabo:null,pinoA:null,pinoB:null};
+const G={corpoA:null,corpoB:null,trav:null,chapa:null,sela:null,cabo:null,pinoA:null,pinoB:null,bCorpo:null,bSela:null};
 const SEL=new Set(); let expl=0;
 function rrect(w,h,r){
 r=Math.min(r,w/2-.1,h/2-.1);
@@ -336,6 +354,40 @@ g.add(box(P.trav_W*.9,4,W,M.trav, sg*P.sep/2, H/2+1, 0,"trav"));
 }
 return g;
 }
+function buildB(){
+const L=P.b_L, H=P.b_H, D=P.b_D, SL=P.b_selaL, SD=P.b_selaD, HA=P.b_haste;
+const t=4;
+const corpo=new THREE.Group();
+corpo.add(box(L,t,D,M.bCorpo,0,-H/2+t/2,0,"bCorpo"));
+for(const s of [-1,1])
+corpo.add(box(t,H,D,M.bCorpo,s*(L/2-t/2),0,0,"bCorpo"));
+for(const s of [-1,1])
+corpo.add(box(L,H,t,M.bCorpo,0,0,s*(D/2-t/2),"bCorpo"));
+const dr=P.b_roda;
+for(const s of [-1,1]){
+for(const zz of [-1,1]){
+const w=new THREE.Mesh(new THREE.CylinderGeometry(dr/2,dr/2,P.b_rodaW,32),M.roda);
+w.rotation.x=Math.PI/2;
+w.position.set(s*P.b_ent/2, H/2-2, zz*(P.b_rodaW/2+1));
+w.userData.sel="bCorpo"; corpo.add(w);
+}
+}
+corpo.userData={bx:0,by:0,bz:0};
+const selaG=new THREE.Group();
+const arco=new THREE.Mesh(
+new THREE.CylinderGeometry(SL/2,SL/2,SD,40,1,true,Math.PI,Math.PI),M.bSela);
+arco.rotation.z=Math.PI/2; arco.rotation.y=Math.PI/2;
+arco.userData.sel="bSela"; selaG.add(arco);
+for(const s of [-1,1]){
+const h=new THREE.Mesh(new THREE.CylinderGeometry(2,2,HA,12),M.aco);
+h.position.set(s*(SL/2-6), HA/2+SL/2, 0); selaG.add(h);
+}
+const rol=new THREE.Mesh(new THREE.CylinderGeometry(6,6,8,20),
+new THREE.MeshStandardMaterial({color:0x2a2a2e,roughness:.5}));
+rol.rotation.x=Math.PI/2; rol.position.y=-SL/2-4; selaG.add(rol);
+selaG.userData={bx:0,by:-HA-SL/2,bz:0};
+return {corpo, sela:selaG};
+}
 function build(){
 while(root.children.length) root.remove(root.children[0]);
 const pivY = P.trav_H/2 + P.garfo_H - 6;
@@ -395,6 +447,15 @@ h.position.set(sg*(P.trav_L*.36),-22,0); G.sela.add(h);
 G.sela.userData={bx:0,by:-P.trav_H/2-5-expl*46,bz:0};
 root.add(G.sela);
 } else { G.chapa=null; G.sela=null; }
+if(P.show_b){
+const B=buildB();
+const off=P.b_off;
+B.corpo.userData.bz += off; B.sela.userData.bz += off;
+B.corpo.userData.by += P.b_H/2 + P.trav_H/2 + P.garfo_H + P.corpo_H - P.b_H/2;
+B.sela.userData.by  += P.b_H/2 + P.trav_H/2 + P.garfo_H + P.corpo_H - P.b_H/2;
+G.bCorpo=B.corpo; G.bSela=B.sela;
+root.add(B.corpo); root.add(B.sela);
+} else { G.bCorpo=null; G.bSela=null; }
 if(P.show_env){
 const eg=new THREE.BoxGeometry(ENV.A,ENV.C,ENV.B);
 const wire=new THREE.LineSegments(new THREE.EdgesGeometry(eg),
@@ -432,6 +493,8 @@ M.sela.emissive.setHex(SEL.has("sela")?0x113355:0);
 M.cabo.emissive.setHex(SEL.has("cabo")?0x224466:0);
 M.pinoA.emissive.setHex(SEL.has("pinoA")?0x555522:0);
 M.pinoB.emissive.setHex(SEL.has("pinoB")?0x555522:0);
+M.bCorpo.emissive.setHex(SEL.has("bCorpo")?0x224422:0);
+M.bSela.emissive.setHex(SEL.has("bSela")?0x224422:0);
 const b=document.getElementById("selbadge");
 b.style.display=SEL.size?"block":"none";
 b.textContent = SEL.size===1 ? NOME[selArr()[0]] : SEL.size+" peças selecionadas";
@@ -592,6 +655,16 @@ if (P.trav_L > ENV.A + 1)
 out.push(`<div class="w"><b>Travessa maior que o comprimento A</b> (${ENV.A} mm do catálogo).</div>`);
 if (P.corpo_E > ENV.B + 1)
 out.push(`<div class="w"><b>Corpo mais largo que a base B</b> (${ENV.B} mm do catálogo).</div>`);
+if(P.show_b){
+const folga = P.b_H + (P.b_roda/2);
+if(P.roda_De > P.b_roda + 6)
+out.push(`<div class="w"><b>A sua roldana não cabe no carrinho B.</b> Ø${P.roda_De} mm
+contra Ø${P.b_roda} mm do desenho — diferença de ${(P.roda_De-P.b_roda).toFixed(0)} mm.
+Para reaproveitar as suas roldanas o carrinho B teria que ser reescalado.</div>`);
+if(P.roda_larg > P.b_D/2 - 2)
+out.push(`<div class="w"><b>Largura da roldana incompatível com B.</b> ${P.roda_larg} mm
+de roldana num corpo de ${P.b_D} mm de profundidade.</div>`);
+}
 out.push(`<div class="q"><b>Ainda em aberto:</b> (1) se os dois corpos giram em parafusos
 separados (como está) ou num pino único — nesse caso ponha a <i>separação</i> em 0;
 (2) o Ø do cabo de aço não está na ficha — os 6 mm de lá são a espessura do
