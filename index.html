@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Carrinho porta-cabos — modelo 3D v5</title>
+<title>Carrinho porta-cabos — modelo 3D v10</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -66,6 +66,8 @@ border-radius:5px;padding:3px 8px;font-size:11.5px}
 background:#0f1116ee;border:1px solid #2e323d;border-radius:10px;padding:7px 9px}
 #hudbar button.on{background:#f0a020;border-color:#f0b429;color:#241a05;font-weight:600}
 #hud.min .hudbody{display:none}
+#hud button.stl{background:#1c4a2e;border-color:#2d7048;color:#a8e6c0}
+#hud button.stl:hover{background:#245c39}
 #hud button.del{background:#5a1f22;border-color:#8a2f33;color:#ffb3b6}
 #hud button.del:hover{background:#6d262a}
 </style>
@@ -114,6 +116,14 @@ background:#0f1116ee;border:1px solid #2e323d;border-radius:10px;padding:7px 9px
 <button onclick="selTudo()">tudo</button>
 <button onclick="deselect()">limpar</button>
 <button class="go" onclick="alinharCabo()">alinhar cabo</button>
+</div>
+<div class="hudrow"><span class="lb">STL</span>
+<button class="stl" onclick="gerarSTL('sel')">da seleção</button>
+<button class="stl" onclick="gerarSTL('plastico')">peças a imprimir</button>
+<button onclick="gerarSTL('tudo')">tudo</button>
+<label class="dim" style="display:flex;align-items:center;gap:4px">
+<input type="checkbox" id="stlDeitar" checked style="accent-color:#f0b429">
+deitar na mesa</label>
 <span class="dim">Shift+clique adiciona / remove peça</span>
 <span class="dim" id="deltaTxt">&#916; 0</span>
 </div>
@@ -156,10 +166,12 @@ cada um com 1 roldana, articulados na travessa por parafuso.</p>
 <button class="hi" onclick="salvar()">⬇ Salvar medidas (.json)</button>
 <button onclick="document.getElementById('fin').click()">⬆ Carregar</button>
 <button onclick="copiar()">Copiar texto</button>
+<button onclick="limparMemoria()">Esquecer alteracoes</button>
 <input type="file" id="fin" accept=".json" style="display:none" onchange="carregar(event)">
 </div>
 <textarea id="dump" readonly></textarea>
 <div id="saved" class="sub" style="color:#46a758"></div>
+<div id="auto" class="sub" style="color:#767c8b"></div>
 <h2 id="selhead">Peça selecionada</h2>
 <div id="selpanel">
 <div id="selname"></div>
@@ -488,7 +500,7 @@ flags.forEach(id=>o.exibir[id]=P[id]);
 o.apagadas=[...OFF];
 return o;
 }
-function dump(){ const el=document.getElementById("dump"); if(el) el.value=JSON.stringify(estado(),null,1); }
+function dump(){ const el=document.getElementById("dump"); if(el) el.value=JSON.stringify(estado(),null,1); persistir(); }
 function salvar(){
 const b=new Blob([JSON.stringify(estado(),null,2)],{type:"application/json"});
 const a=document.createElement("a"); a.href=URL.createObjectURL(b);
@@ -501,17 +513,51 @@ const t=document.getElementById("dump"); t.select(); t.setSelectionRange(0,99999
 try{ document.execCommand("copy"); aviso("Copiado. Cole na conversa."); }
 catch(err){ aviso("Não consegui copiar — selecione e copie na mão."); }
 }
+const CHAVE="carrinho_ws1f85_v9";
+let memOK=true, tSalvar=null;
+function aplicaEstado(o){
+Object.entries(o.cotas||{}).forEach(([k,v])=>{const el=document.getElementById(k); if(el) el.value=v;});
+Object.entries(o.exibir||{}).forEach(([k,v])=>{const el=document.getElementById(k); if(el) el.checked=!!v;});
+Object.entries(o.montagem||{}).forEach(([k,v])=>{ if(ST[k]) Object.assign(ST[k],v); });
+OFF.clear(); (o.apagadas||[]).forEach(t=>OFF.add(t));
+}
+function persistir(){
+if(!memOK) return;
+clearTimeout(tSalvar);
+tSalvar=setTimeout(()=>{
+try{
+localStorage.setItem(CHAVE, JSON.stringify(estado()));
+const d=new Date();
+document.getElementById("auto").textContent =
+"salvo automaticamente as "+String(d.getHours()).padStart(2,"0")+":"
++String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0");
+}catch(e){
+memOK=false;
+document.getElementById("auto").textContent =
+"este ambiente nao permite memoria do navegador - use Salvar/Carregar em arquivo";
+}
+},400);
+}
+function restaurar_memoria(){
+try{
+const t=localStorage.getItem(CHAVE);
+if(!t) return false;
+aplicaEstado(JSON.parse(t));
+return true;
+}catch(e){ memOK=false; return false; }
+}
+function limparMemoria(){
+try{ localStorage.removeItem(CHAVE); }catch(e){}
+document.getElementById("auto").textContent="memoria apagada - o refresh volta aos valores originais";
+aviso("Alteracoes esquecidas. Recarregue para voltar ao padrao.");
+}
 function carregar(ev){
 const f=ev.target.files[0]; if(!f) return;
 const rd=new FileReader();
 rd.onload=()=>{
 try{
-const o=JSON.parse(rd.result);
-Object.entries(o.cotas||{}).forEach(([k,v])=>{const el=document.getElementById(k); if(el) el.value=v;});
-Object.entries(o.exibir||{}).forEach(([k,v])=>{const el=document.getElementById(k); if(el) el.checked=!!v;});
-Object.entries(o.montagem||{}).forEach(([k,v])=>{ if(ST[k]) Object.assign(ST[k],v); });
-OFF.clear(); (o.apagadas||[]).forEach(t=>OFF.add(t));
-read(); build(); syncSel(); aviso("Medições recuperadas.");
+aplicaEstado(JSON.parse(rd.result));
+read(); build(); syncSel(); aviso("Medições recuperadas do arquivo.");
 }catch(err){ aviso("Arquivo inválido."); }
 ev.target.value="";
 };
@@ -680,6 +726,73 @@ applyX(); syncSel();
 const vao=pts[0].distanceTo(pts[1]);
 aviso("Cabo alinhado. Vão entre as gargantas: "+vao.toFixed(1)+" mm.");
 }
+const PLASTICO=["corpoA","corpoB","trav"];
+function coletaTris(obj, out, M){
+obj.updateWorldMatrix(true,true);
+const v=new THREE.Vector3();
+obj.traverse(o=>{
+if(!o.isMesh || !o.visible) return;
+const g=o.geometry, pos=g.attributes && g.attributes.position;
+if(!pos) return;
+const idx=g.index, m=o.matrixWorld;
+const push=i=>{ v.fromBufferAttribute(pos,i).applyMatrix4(m);
+if(M) v.applyMatrix4(M);
+out.push(v.x,v.y,v.z); };
+if(idx){ for(let i=0;i<idx.count;i+=3){ push(idx.getX(i)); push(idx.getX(i+1)); push(idx.getX(i+2)); } }
+else   { for(let i=0;i<pos.count;i+=3){ push(i); push(i+1); push(i+2); } }
+});
+}
+function stlBlob(c){
+const n=c.length/9, buf=new ArrayBuffer(84+n*50), dv=new DataView(buf);
+for(let i=0;i<80;i++) dv.setUint8(i,32);
+dv.setUint32(80,n,true);
+let o=84;
+for(let t=0;t<n;t++){
+const b=t*9;
+const ax=c[b+3]-c[b], ay=c[b+4]-c[b+1], az=c[b+5]-c[b+2];
+const bx=c[b+6]-c[b], by=c[b+7]-c[b+1], bz=c[b+8]-c[b+2];
+let nx=ay*bz-az*by, ny=az*bx-ax*bz, nz=ax*by-ay*bx;
+const L=Math.hypot(nx,ny,nz)||1;
+dv.setFloat32(o,nx/L,true); dv.setFloat32(o+4,ny/L,true); dv.setFloat32(o+8,nz/L,true); o+=12;
+for(let k=0;k<9;k++){ dv.setFloat32(o,c[b+k],true); o+=4; }
+dv.setUint16(o,0,true); o+=2;
+}
+return new Blob([buf],{type:"model/stl"});
+}
+function gerarSTL(modo){
+let alvos;
+if(modo==="sel"){
+if(precisaSel()) return;
+alvos=selArr();
+} else if(modo==="plastico"){
+alvos=PLASTICO.filter(k=>G[k]&&!OFF.has(k));
+} else {
+alvos=PECAS.filter(k=>G[k]&&!OFF.has(k));
+}
+if(!alvos.length){ aviso("Nada para exportar."); return; }
+const deitar=document.getElementById("stlDeitar").checked;
+const M = deitar ? new THREE.Matrix4().makeRotationX(Math.PI/2) : null;
+const c=[];
+alvos.forEach(k=>coletaTris(G[k],c,M));
+if(!c.length){ aviso("As peças escolhidas não têm malha visível."); return; }
+let miX=1e9,maX=-1e9,miY=1e9,maY=-1e9,miZ=1e9,maZ=-1e9;
+for(let i=0;i<c.length;i+=3){
+if(c[i]<miX)miX=c[i]; if(c[i]>maX)maX=c[i];
+if(c[i+1]<miY)miY=c[i+1]; if(c[i+1]>maY)maY=c[i+1];
+if(c[i+2]<miZ)miZ=c[i+2]; if(c[i+2]>maZ)maZ=c[i+2];
+}
+if(deitar){
+const cx=(miX+maX)/2, cy=(miY+maY)/2;
+for(let i=0;i<c.length;i+=3){ c[i]-=cx; c[i+1]-=cy; c[i+2]-=miZ; }
+}
+const nome = "carrinho_"+(modo==="sel"?alvos.join("+"):modo)+".stl";
+const a=document.createElement("a");
+a.href=URL.createObjectURL(stlBlob(c));
+a.download=nome; document.body.appendChild(a); a.click(); a.remove();
+setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+aviso(nome+" — "+(c.length/9)+" triangulos, "
++(maX-miX).toFixed(1)+" x "+(maY-miY).toFixed(1)+" x "+(maZ-miZ).toFixed(1)+" mm");
+}
 function toggleHud(){
 const h=document.getElementById("hud"); h.classList.toggle("min");
 document.getElementById("hudArrow").innerHTML = h.classList.contains("min")?"\u25b2":"\u25bc";
@@ -758,7 +871,10 @@ dist*Math.cos(rotX)*Math.cos(rotY));
 cam.lookAt(panX,panY,0);
 renderer.render(scene,cam);
 }
+const veio = restaurar_memoria();
 read(); build(); resize(); setView("iso"); loop();
+if(veio){ syncSel(); aviso("Suas alteracoes anteriores foram restauradas."); }
+else if(memOK) document.getElementById("auto").textContent="as alteracoes serao salvas automaticamente";
 </script>
 </body>
 </html>
