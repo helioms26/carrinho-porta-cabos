@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carrinho porta-cabos — modelo 3D v5</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+background:#15171c;color:#e8e8ea;overflow:hidden}
+#app{display:flex;height:100vh}
+#view{flex:1;position:relative;min-width:0}
+canvas{display:block}
+#panel{width:350px;background:#1d2028;border-left:1px solid #2e323d;overflow-y:auto;padding:16px 18px 60px}
+h1{font-size:15px;margin:0 0 4px}
+h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#8a90a0;
+margin:20px 0 8px;border-bottom:1px solid #2e323d;padding-bottom:5px}
+h2.sel{color:#f0b429;border-color:#5a4718}
+.sub{font-size:11.5px;color:#8a90a0;margin:0 0 8px}
+.row{display:flex;align-items:center;gap:8px;margin:7px 0}
+.row label{flex:1;font-size:12px;color:#c3c7d1}
+.row input[type=range]{flex:1.15;accent-color:#f0b429;min-width:0}
+.row .v{width:56px;text-align:right;font-variant-numeric:tabular-nums;
+font-size:12px;color:#f0b429;font-weight:600}
+.chk{display:flex;align-items:center;gap:7px;margin:5px 0;font-size:12.5px;color:#c3c7d1}
+.chk input{accent-color:#f0b429}
+#warn{margin-top:14px;font-size:12px;line-height:1.5}
+.w{background:#3a1f1f;border-left:3px solid #e5484d;padding:8px 10px;margin:6px 0;border-radius:3px}
+.ok{background:#1c2e22;border-left:3px solid #46a758;padding:8px 10px;margin:6px 0;border-radius:3px}
+.q{background:#2a2438;border-left:3px solid #8e6ad6;padding:8px 10px;margin:6px 0;border-radius:3px}
+#hint{position:absolute;left:14px;bottom:12px;font-size:11.5px;color:#767c8b;
+background:#000000cc;padding:7px 11px;border-radius:5px;line-height:1.7}
+#legend{position:absolute;left:14px;top:12px;font-size:11.5px;background:#000000cc;
+padding:8px 11px;border-radius:5px;line-height:1.7}
+#selbadge{position:absolute;right:14px;top:12px;font-size:12px;background:#f0b429;color:#1a1a1a;
+padding:6px 12px;border-radius:20px;font-weight:600;display:none}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+button{background:#2b303c;border:1px solid #3c4351;color:#e8e8ea;padding:6px 10px;
+border-radius:5px;font-size:12px;cursor:pointer;margin:0 6px 6px 0}
+button:hover{background:#353b4a}
+button.hi{background:#5a4718;border-color:#8a6d1f;color:#ffd97a}
+#selpanel{display:none;background:#22252e;border:1px solid #3a3f4c;border-radius:6px;
+padding:10px 12px;margin:8px 0}
+#selname{font-size:12px;color:#f0b429;font-weight:700;margin-bottom:6px}
+textarea{width:100%;height:120px;margin-top:8px;background:#12141a;color:#c3c7d1;
+border:1px solid #3a3f4c;border-radius:5px;padding:8px;resize:vertical;
+font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+#hud{position:absolute;left:14px;top:70px;background:#0f1116ee;border:1px solid #2e323d;
+border-radius:10px;padding:9px 11px;font-size:12px;min-width:330px;
+box-shadow:0 6px 24px #0008}
+#hud .hudrow{display:flex;align-items:center;gap:5px;margin:5px 0;flex-wrap:wrap}
+#hud .lb{color:#8a90a0;width:42px;font-size:11.5px}
+#hud .dim{color:#767c8b;font-size:11px}
+#hud .tag{background:#2b303c;border:1px solid #3c4351;border-radius:5px;
+padding:3px 8px;color:#f0b429;font-weight:600}
+#hud button,#hudbar button{background:#23272f;border:1px solid #363c48;color:#dfe3ea;
+padding:4px 9px;border-radius:6px;font-size:11.5px;cursor:pointer;margin:0}
+#hud button:hover,#hudbar button:hover{background:#2f3541}
+#hud button:active{background:#5a4718;border-color:#8a6d1f}
+#hud .stp{width:52px;background:#1a1d24;border:1px solid #363c48;color:#f0b429;
+border-radius:5px;padding:3px 6px;font-size:11.5px;text-align:center}
+#hud .goto{flex:1;min-width:120px;background:#1a1d24;border:1px solid #363c48;color:#c3c7d1;
+border-radius:5px;padding:3px 8px;font-size:11.5px}
+#hud .go,#hudbar .go{background:#1e5aa8;border-color:#2b6fc4;color:#fff}
+#hudbar{position:absolute;left:14px;bottom:56px;display:flex;gap:6px;flex-wrap:wrap;
+background:#0f1116ee;border:1px solid #2e323d;border-radius:10px;padding:7px 9px}
+#hudbar button.on{background:#f0a020;border-color:#f0b429;color:#241a05;font-weight:600}
+#hud.min .hudbody{display:none}
+#hud button.del{background:#5a1f22;border-color:#8a2f33;color:#ffb3b6}
+#hud button.del:hover{background:#6d262a}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="view">
+<div id="legend">
+<span class="sw" style="background:#f2c14e"></span>corpo A (1 roldana)<br>
+<span class="sw" style="background:#efd08a"></span>corpo B (idêntico ao A)<br>
+<span class="sw" style="background:#e0703c"></span>travessa em cruz<br>
+<span class="sw" style="background:#b8c0cc"></span>parafusos &nbsp;
+<span class="sw" style="background:#cfd6e0"></span>roldanas<br>
+<span class="sw" style="background:#4a5568"></span>cabo &nbsp;
+<span class="sw" style="background:#3aa7e0"></span>sela &nbsp;<span class="sw" style="background:#8e6ad6"></span>envelope 90×55×55
+</div>
+<div id="selbadge"></div>
+<div id="hud">
+<div class="hudrow" id="hudtitle"><span class="tag" id="selTag">Sel: peça</span>
+<span class="dim">(clique numa peça)</span></div>
+<div class="hudbody">
+<div class="hudrow"><span class="lb">mover</span>
+<input id="passoMov" class="stp" value="1">
+<button onclick="mover(-1,0,0)" title="oeste (−X)">O</button>
+<button onclick="mover(1,0,0)"  title="leste (+X)">L</button>
+<button onclick="mover(0,0,-1)" title="norte (−Z)">N</button>
+<button onclick="mover(0,0,1)"  title="sul (+Z)">S</button>
+<button onclick="mover(0,1,0)"  title="subir">↑</button>
+<button onclick="mover(0,-1,0)" title="descer">↓</button>
+</div>
+<div class="hudrow"><span class="lb">girar</span>
+<input id="passoGir" class="stp" value="15">
+<button onclick="girar('y',-1)">Y↺</button><button onclick="girar('y',1)">Y↻</button>
+<button onclick="girar('x',-1)">X↺</button><button onclick="girar('x',1)">X↻</button>
+<button onclick="girar('z',-1)">Z↺</button><button onclick="girar('z',1)">Z↻</button>
+</div>
+<div class="hudrow">
+<button onclick="zerarTudo()">zerar</button>
+<button onclick="copiar()">copiar</button>
+<button onclick="setPasso(0.1,5)">passo fino</button>
+<button onclick="setPasso(0.01,1)">passo micro</button>
+<button class="del" onclick="apagar()">apagar</button>
+<button onclick="restaurar()">restaurar tudo</button>
+</div>
+<div class="hudrow"><span class="lb">seleção</span>
+<button onclick="selTudo()">tudo</button>
+<button onclick="deselect()">limpar</button>
+<button class="go" onclick="alinharCabo()">alinhar cabo</button>
+<span class="dim">Shift+clique adiciona / remove peça</span>
+<span class="dim" id="deltaTxt">&#916; 0</span>
+</div>
+<div class="hudrow"><span class="lb">ir para</span>
+<input id="goto" class="goto" placeholder="x, z, az, el, zoom%">
+<button class="go" onclick="irPara()">Ir</button>
+<button onclick="captura()">captura</button>
+</div>
+</div>
+</div>
+<div id="hudbar">
+<button class="go" onclick="toggleHud()"><span id="hudArrow">&#9660;</span> Abaixar</button>
+<button onclick="setView('top')">Vista 2D (topo)</button>
+<button onclick="toggleGrade()">Grade on/off</button>
+<button id="btSel" class="on" onclick="toggleSelMode()">Selecionar</button>
+<button onclick="explode()">Explodir</button>
+</div>
+<div id="hint">
+<b>clique numa peça</b> para selecionar · escolha <b>Girar / Mover / Lateral</b> no painel<br>
+(ou segure <b>Shift</b> para mover e <b>Ctrl</b> para mover de lado)<br>
+<b>Shift+clique</b> soma peças à seleção · clique no vazio solta<br>
+Ctrl+A seleciona tudo · Delete apaga · scroll = zoom · botão direito = mover a cena
+</div>
+</div>
+<div id="panel">
+<h1>Carrinho porta-cabos — v5</h1>
+<p class="sub"><b>3 peças a imprimir:</b> 1 travessa em cruz + 2 corpos idênticos,
+cada um com 1 roldana, articulados na travessa por parafuso.</p>
+<div>
+<button onclick="setView('iso')">Iso</button>
+<button onclick="setView('front')">Frente</button>
+<button onclick="setView('side')">Lado</button>
+<button onclick="setView('top')">De cima</button>
+<button onclick="explode()">Explodir</button>
+<button onclick="bascular()">Simular curva</button>
+</div>
+<h2>Salvar / recuperar</h2>
+<p class="sub">Não grava sozinho. Baixe o arquivo para não perder as medições.</p>
+<div>
+<button class="hi" onclick="salvar()">⬇ Salvar medidas (.json)</button>
+<button onclick="document.getElementById('fin').click()">⬆ Carregar</button>
+<button onclick="copiar()">Copiar texto</button>
+<input type="file" id="fin" accept=".json" style="display:none" onchange="carregar(event)">
+</div>
+<textarea id="dump" readonly></textarea>
+<div id="saved" class="sub" style="color:#46a758"></div>
+<h2 id="selhead">Peça selecionada</h2>
+<div id="selpanel">
+<div id="selname"></div>
+<div style="margin:6px 0 10px">
+<button id="mb_rot"  class="hi" onclick="setModo('rot')">↻ Girar</button>
+<button id="mb_mov"  onclick="setModo('mov')">✥ Mover</button>
+<button id="mb_lat"  onclick="setModo('lat')">⇔ Lateral</button>
+</div>
+<p class="sub" style="margin:2px 0 6px">Giro: use os botões <b>Y↺ Y↻ X↺ X↻ Z↺ Z↻</b> do painel sobre a cena.</p>
+<div class="row"><label>mover ao longo do cabo</label><input type="range" id="s_tx" min="-90" max="90" step="0.5" value="0"><span class="v"></span></div>
+<div class="row"><label>mover em altura</label><input type="range" id="s_ty" min="-60" max="60" step="0.5" value="0"><span class="v"></span></div>
+<div class="row"><label>mover lateralmente</label><input type="range" id="s_tz" min="-60" max="60" step="0.5" value="0"><span class="v"></span></div>
+<div id="multiAviso" class="sub" style="display:none;color:#ffd97a;margin:4px 0 8px">
+Várias peças selecionadas: os sliders de posição valem só para uma peça.
+Use os botões <b>mover</b> e <b>girar</b> do painel — eles agem no conjunto,
+girando em torno do centro comum.
+</div>
+<button onclick="zeraGiro()">Zerar giro</button>
+<button onclick="zeraPos()">Zerar posição</button>
+<button onclick="deselect()">Soltar</button>
+</div>
+<p class="sub" id="selhelp">Clique num corpo amarelo ou na travessa laranja na cena.</p>
+<h2>Corpo da roldana <span style="color:#5f6673">(os dois são iguais)</span></h2>
+<div class="row"><label>altura do corpo</label><input type="range" id="corpo_H" min="30" max="90" step="1" value="52"><span class="v"></span></div>
+<div class="row"><label>largura no topo</label><input type="range" id="corpo_Wt" min="20" max="70" step="1" value="42"><span class="v"></span></div>
+<div class="row"><label>largura na base</label><input type="range" id="corpo_Wb" min="10" max="60" step="1" value="24"><span class="v"></span></div>
+<div class="row"><label>espessura</label><input type="range" id="corpo_E" min="10" max="45" step="0.5" value="26"><span class="v"></span></div>
+<div class="row"><label>eixo da roldana (do pino)</label><input type="range" id="roda_Y" min="15" max="70" step="1" value="34"><span class="v"></span></div>
+<div class="row"><label>fenda do cabo</label><input type="range" id="fenda_W" min="6" max="26" step="0.5" value="13"><span class="v"></span></div>
+<h2>Travessa em cruz</h2>
+<div class="row"><label>braço longo — A</label><input type="range" id="trav_L" min="40" max="160" step="1" value="90"><span class="v"></span></div>
+<div class="row"><label><b>braço transversal — B</b></label><input type="range" id="trav_B" min="20" max="120" step="1" value="55"><span class="v"></span></div>
+<div class="row"><label>largura dos braços</label><input type="range" id="trav_W" min="10" max="50" step="1" value="22"><span class="v"></span></div>
+<div class="row"><label>altura do perfil</label><input type="range" id="trav_H" min="6" max="30" step="0.5" value="14"><span class="v"></span></div>
+<div class="row"><label><b>separação das articulações — G</b></label><input type="range" id="sep" min="0" max="110" step="1" value="71"><span class="v"></span></div>
+<div class="row"><label>furo interno: do centro</label><input type="range" id="furo_1" min="6" max="60" step="1" value="14"><span class="v"></span></div>
+<div class="row"><label>furo externo: do centro</label><input type="range" id="furo_2" min="8" max="75" step="1" value="22"><span class="v"></span></div>
+<div class="row"><label>Ø dos furos</label><input type="range" id="furo_D" min="3" max="14" step="0.5" value="7"><span class="v"></span></div>
+<div class="row"><label>altura do garfo</label><input type="range" id="garfo_H" min="6" max="40" step="1" value="18"><span class="v"></span></div>
+<h2>Roldana e cabo (já medidos)</h2>
+<div class="row"><label>Ø externo</label><input type="range" id="roda_De" min="20" max="55" step="0.5" value="35"><span class="v"></span></div>
+<div class="row"><label>Ø da garganta</label><input type="range" id="roda_Dg" min="10" max="40" step="0.5" value="20"><span class="v"></span></div>
+<div class="row"><label>largura</label><input type="range" id="roda_larg" min="6" max="30" step="0.5" value="16"><span class="v"></span></div>
+<div class="row"><label>Ø do cabo</label><input type="range" id="cabo_D" min="4" max="18" step="0.5" value="10"><span class="v"></span></div>
+<h2>Exibir</h2>
+<label class="chk"><input type="checkbox" id="show_roda" checked> roldanas</label>
+<label class="chk"><input type="checkbox" id="show_cabo" checked> cabo de aço</label>
+<label class="chk"><input type="checkbox" id="show_trav" checked> travessa</label>
+<label class="chk"><input type="checkbox" id="show_sela" checked> chapa creme + sela azul</label>
+<label class="chk"><input type="checkbox" id="show_env" checked> envelope do catálogo 90×55×55</label>
+<h2>Ficha do fabricante</h2>
+<p class="sub" style="line-height:1.75">
+<b>WS1F85-50-90-K</b> · códigos 0310070/00 e /01<br>
+A comprimento <b>90</b> · B largura/base <b>55</b> · C altura <b>55</b><br>
+D <b>50</b> · E <b>37</b> · G <b>71</b> · H <b>90</b><br>
+espessura máx. do cabo <b style="color:#e5484d">6 mm</b><br>
+abertura útil <b>17 × 65 mm</b> · carga <b>10 kg</b> · <b>50 m/min</b><br>
+peso do conjunto <b>130 g</b> · tolerância geral ±0,3 mm
+</p>
+<div id="warn"></div>
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const P={};
+const dims=["corpo_H","corpo_Wt","corpo_Wb","corpo_E","roda_Y","fenda_W",
+"trav_L","trav_B","trav_W","trav_H","sep","furo_1","furo_2","furo_D","garfo_H",
+"roda_De","roda_Dg","roda_larg","cabo_D"];
+const flags=["show_roda","show_cabo","show_trav","show_sela","show_env"];
+const VERSAO="v9";
+const ENV={A:90,B:55,C:55};
+const SKEYS=["tx","ty","tz"];
+const NOME={corpoA:"Corpo A (roldana 1)", corpoB:"Corpo B (roldana 2)",
+trav:"Travessa em cruz", chapa:"Chapa creme (não imprime)",
+sela:"Sela azul (não imprime)", cabo:"Cabo de aço",
+pinoA:"Parafuso da articulação A", pinoB:"Parafuso da articulação B"};
+const PECAS=["corpoA","corpoB","trav","chapa","sela","cabo","pinoA","pinoB"];
+const ST={ corpoA:z(), corpoB:z(), trav:z(), chapa:z(), sela:z(),
+cabo:z(), pinoA:z(), pinoB:z() };
+const OFF=new Set();
+function z(){ return {q:[0,0,0,1],tx:0,ty:0,tz:0}; }
+const view=document.getElementById("view");
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x15171c);
+const cam=new THREE.PerspectiveCamera(38,1,1,3000);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+view.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff,0x33383f,.9));
+const kl=new THREE.DirectionalLight(0xffffff,.8); kl.position.set(120,190,150); scene.add(kl);
+const fl2=new THREE.DirectionalLight(0xffffff,.3); fl2.position.set(-150,-70,-120); scene.add(fl2);
+scene.add(new THREE.GridHelper(400,20,0x2c313c,0x22262e));
+const M={
+A    : new THREE.MeshStandardMaterial({color:0xf2c14e,roughness:.55}),
+B    : new THREE.MeshStandardMaterial({color:0xefd08a,roughness:.55}),
+trav : new THREE.MeshStandardMaterial({color:0xe0703c,roughness:.55}),
+aco  : new THREE.MeshStandardMaterial({color:0xb8c0cc,roughness:.3,metalness:.8}),
+roda : new THREE.MeshStandardMaterial({color:0xcfd6e0,roughness:.35,metalness:.35}),
+cabo : new THREE.MeshStandardMaterial({color:0x4a5568,roughness:.5,metalness:.7}),
+pinoA: new THREE.MeshStandardMaterial({color:0xb8c0cc,roughness:.3,metalness:.8}),
+pinoB: new THREE.MeshStandardMaterial({color:0xb8c0cc,roughness:.3,metalness:.8}),
+sela : new THREE.MeshStandardMaterial({color:0x3aa7e0,roughness:.6}),
+chapa: new THREE.MeshStandardMaterial({color:0xe8e0c4,roughness:.8})
+};
+const root=new THREE.Group(); scene.add(root);
+const G={corpoA:null,corpoB:null,trav:null,chapa:null,sela:null,cabo:null,pinoA:null,pinoB:null};
+const SEL=new Set(); let expl=0;
+function rrect(w,h,r){
+r=Math.min(r,w/2-.1,h/2-.1);
+const s=new THREE.Shape(),x=-w/2,y=-h/2;
+s.moveTo(x+r,y); s.lineTo(x+w-r,y); s.quadraticCurveTo(x+w,y,x+w,y+r);
+s.lineTo(x+w,y+h-r); s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+s.lineTo(x+r,y+h); s.quadraticCurveTo(x,y+h,x,y+h-r);
+s.lineTo(x,y+r); s.quadraticCurveTo(x,y,x+r,y); return s;
+}
+function ext(s,d){ return new THREE.ExtrudeGeometry(s,{depth:d,bevelEnabled:false,curveSegments:32}); }
+function box(w,h,d,mat,x,y,zz,tag){
+const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+m.position.set(x,y,zz); if(tag) m.userData.sel=tag; return m;
+}
+function buildCorpo(mat,tag){
+const g=new THREE.Group();
+const H=P.corpo_H, Wt=P.corpo_Wt, Wb=P.corpo_Wb, E=P.corpo_E;
+const par=Math.max((E-P.roda_larg-1)/2, 2);
+const s=new THREE.Shape();
+s.moveTo(-Wb/2,0); s.lineTo(Wb/2,0);
+s.quadraticCurveTo(Wt/2,H*.45, Wt/2,H-6);
+s.quadraticCurveTo(Wt/2,H, Wt/2-6,H);
+s.lineTo(-Wt/2+6,H);
+s.quadraticCurveTo(-Wt/2,H, -Wt/2,H-6);
+s.quadraticCurveTo(-Wt/2,H*.45, -Wb/2,0);
+for(const sg of [-1,1]){
+const m=new THREE.Mesh(ext(s,par),mat);
+m.position.z = sg<0 ? -E/2 : E/2-par;
+m.userData.sel=tag; g.add(m);
+}
+const back=new THREE.Mesh(ext(rrect(Wt,H*.5,5),3),mat);
+back.position.set(0,H*.25,-E/2); back.userData.sel=tag; g.add(back);
+for(const sg of [-1,1])
+g.add(box(Wb*.75,P.garfo_H+6,par+1,mat,0,-(P.garfo_H+6)/2+2,
+sg*(P.roda_larg/2+par/2+.5),tag));
+return g;
+}
+function buildTrav(){
+const g=new THREE.Group();
+const L=P.trav_L, B=P.trav_B, W=P.trav_W, H=P.trav_H, t=3;
+g.add(box(L,t,W,M.trav,0,-H/2+t/2,0,"trav"));
+g.add(box(L,H,t,M.trav,0,0, W/2-t/2,"trav"));
+g.add(box(L,H,t,M.trav,0,0,-W/2+t/2,"trav"));
+g.add(box(W,t,B,M.trav,0,-H/2+t/2,0,"trav"));
+g.add(box(t,H,B,M.trav, W/2-t/2,0,0,"trav"));
+g.add(box(t,H,B,M.trav,-W/2+t/2,0,0,"trav"));
+const hm=new THREE.MeshStandardMaterial({color:0x1a1c22,roughness:.9});
+for(const sg of [-1,1]) for(const d of [P.furo_1,P.furo_2]){
+if(d > B/2-2) continue;
+const c=new THREE.Mesh(new THREE.CylinderGeometry(P.furo_D/2,P.furo_D/2,t+1.4,20),hm);
+c.position.set(0,-H/2+t/2,sg*d); g.add(c);
+}
+for(const sg of [-1,1]){
+for(const zz of [-1,1])
+g.add(box(P.trav_W*.55,P.garfo_H,4,M.trav,
+sg*P.sep/2, H/2+P.garfo_H/2-1, zz*(W/2-2),"trav"));
+g.add(box(P.trav_W*.9,4,W,M.trav, sg*P.sep/2, H/2+1, 0,"trav"));
+}
+return g;
+}
+function build(){
+while(root.children.length) root.remove(root.children[0]);
+const pivY = P.trav_H/2 + P.garfo_H - 6;
+const cabY = pivY + P.roda_Y + 4 + P.roda_Dg/2 + P.cabo_D/2;
+G.trav=new THREE.Group();
+if(P.show_trav) G.trav.add(buildTrav());
+G.trav.userData={bx:0,by:-expl*20,bz:0};
+root.add(G.trav);
+const lados=[["corpoA",-1,M.A],["corpoB",1,M.B]];
+for(const [tag,sg,mat] of lados){
+const g=new THREE.Group();
+const inner=buildCorpo(mat,tag); inner.position.y=4; g.add(inner);
+if(P.show_roda){
+const fw=P.roda_larg*.22, r=new THREE.Group();
+for(const zz of [-(P.roda_larg/2-fw/2),(P.roda_larg/2-fw/2)]){
+const d=new THREE.Mesh(new THREE.CylinderGeometry(P.roda_De/2,P.roda_De/2,fw,48),M.roda);
+d.rotation.x=Math.PI/2; d.position.z=zz; d.userData.sel=tag; r.add(d);
+}
+const nu=new THREE.Mesh(new THREE.CylinderGeometry(P.roda_Dg/2,P.roda_Dg/2,P.roda_larg,48),M.roda);
+nu.rotation.x=Math.PI/2; nu.userData.sel=tag; r.add(nu);
+r.position.y=P.roda_Y+4; g.add(r);
+}
+g.userData={bx:sg*P.sep/2, by:pivY+expl*34, bz:0};
+G[tag]=g; root.add(g);
+const ptag = sg<0 ? "pinoA" : "pinoB";
+const pg=new THREE.Group();
+const pin=new THREE.Mesh(new THREE.CylinderGeometry(3,3,P.trav_W+10,16),M[ptag]);
+pin.rotation.x=Math.PI/2; pin.userData.sel=ptag; pg.add(pin);
+for(const e of [-1,1]){
+const h=new THREE.Mesh(new THREE.CylinderGeometry(5,5,4,6),M[ptag]);
+h.rotation.x=Math.PI/2; h.position.z=e*(P.trav_W/2+6);
+h.userData.sel=ptag; pg.add(h);
+}
+pg.userData={bx:sg*P.sep/2, by:pivY-expl*20, bz:0};
+G[ptag]=pg; root.add(pg);
+}
+if(P.show_cabo){
+G.cabo=new THREE.Group();
+const c=new THREE.Mesh(new THREE.CylinderGeometry(P.cabo_D/2,P.cabo_D/2,320,20),M.cabo);
+c.rotation.z=Math.PI/2; c.userData.sel="cabo"; G.cabo.add(c);
+G.cabo.userData={bx:0,by:cabY+expl*34,bz:0};
+root.add(G.cabo);
+} else { G.cabo=null; }
+if(P.show_sela){
+G.chapa=new THREE.Group();
+G.chapa.add(box(P.trav_L*1.05,3,P.trav_W*2.6,M.chapa,0,0,0,"chapa"));
+G.chapa.userData={bx:0,by:-P.trav_H/2-1.5-expl*46,bz:0};
+root.add(G.chapa);
+G.sela=new THREE.Group();
+G.sela.add(box(P.trav_L*.95,4,P.trav_W*2.4,M.sela,0,-6,0,"sela"));
+for(const sg of [-1,1])
+G.sela.add(box(P.trav_L*.95,16,4,M.sela,0,-14,sg*(P.trav_W*1.2-2),"sela"));
+for(const sg of [-1,1]){
+const h=new THREE.Mesh(new THREE.CylinderGeometry(2,2,34,12),M.aco);
+h.position.set(sg*(P.trav_L*.36),-22,0); G.sela.add(h);
+}
+G.sela.userData={bx:0,by:-P.trav_H/2-5-expl*46,bz:0};
+root.add(G.sela);
+} else { G.chapa=null; G.sela=null; }
+if(P.show_env){
+const eg=new THREE.BoxGeometry(ENV.A,ENV.C,ENV.B);
+const wire=new THREE.LineSegments(new THREE.EdgesGeometry(eg),
+new THREE.LineBasicMaterial({color:0x8e6ad6}));
+wire.position.set(0, -P.trav_H/2 + ENV.C/2, 0);
+root.add(wire);
+}
+PECAS.forEach(t=>{ if(G[t]) G[t].visible = !OFF.has(t); });
+applyX(); highlight(); checks();
+}
+function applyX(){
+for(const tag of PECAS){
+const g=G[tag], s=ST[tag]; if(!g||!g.userData) continue;
+g.quaternion.set(s.q[0],s.q[1],s.q[2],s.q[3]);
+g.position.set(g.userData.bx+s.tx, g.userData.by+s.ty, g.userData.bz+s.tz);
+}
+dump();
+}
+function explode(){ expl = expl>0?0:1; build(); }
+function bascular(){
+const qa=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),
+THREE.MathUtils.degToRad(14));
+const qb=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),
+THREE.MathUtils.degToRad(-14));
+ST.corpoA.q=[qa.x,qa.y,qa.z,qa.w]; ST.corpoB.q=[qb.x,qb.y,qb.z,qb.w];
+syncSel(); applyX();
+}
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function highlight(){
+M.A.emissive.setHex(SEL.has("corpoA")?0x553300:0);
+M.B.emissive.setHex(SEL.has("corpoB")?0x553300:0);
+M.trav.emissive.setHex(SEL.has("trav")?0x552200:0);
+M.chapa.emissive.setHex(SEL.has("chapa")?0x444422:0);
+M.sela.emissive.setHex(SEL.has("sela")?0x113355:0);
+M.cabo.emissive.setHex(SEL.has("cabo")?0x224466:0);
+M.pinoA.emissive.setHex(SEL.has("pinoA")?0x555522:0);
+M.pinoB.emissive.setHex(SEL.has("pinoB")?0x555522:0);
+const b=document.getElementById("selbadge");
+b.style.display=SEL.size?"block":"none";
+b.textContent = SEL.size===1 ? NOME[selArr()[0]] : SEL.size+" peças selecionadas";
+document.getElementById("selpanel").style.display=SEL.size?"block":"none";
+document.getElementById("selhelp").style.display=SEL.size?"none":"block";
+document.getElementById("selhead").className=SEL.size?"sel":"";
+const n=document.getElementById("selname");
+if(n) n.textContent = SEL.size===1 ? NOME[selArr()[0]]
+: selArr().map(k=>NOME[k].split(" (")[0]).join("  +  ");
+}
+function tagSel(){
+const t=document.getElementById("selTag"); if(!t) return;
+t.textContent = SEL.size===0 ? "Sel: peça"
+: SEL.size===1 ? "Sel: "+NOME[selArr()[0]].split(" (")[0]
+: "Sel: "+SEL.size+" peças (movem juntas)";
+}
+function syncSel(){
+tagSel(); delta();
+const uni = SEL.size===1 ? selArr()[0] : null;
+["tx","ty","tz"].forEach(k=>{
+const el=document.getElementById("s_"+k); if(!el) return;
+el.disabled=!uni; el.style.opacity=uni?1:.35;
+const v=el.parentElement.querySelector(".v");
+if(uni){ el.value=ST[uni][k]; v.textContent=ST[uni][k].toFixed(1); }
+else   { v.textContent="—"; }
+});
+const av=document.getElementById("multiAviso");
+if(av) av.style.display = SEL.size>1 ? "block" : "none";
+}
+let modo="rot";
+function setModo(m){
+modo=m;
+["rot","mov","lat"].forEach(x=>{
+const b=document.getElementById("mb_"+x); if(b) b.className=(x===m?"hi":"");
+});
+}
+function select(k,add){
+if(add){ SEL.has(k)?SEL.delete(k):SEL.add(k); } else { SEL.clear(); SEL.add(k); }
+highlight(); syncSel();
+}
+function deselect(){ SEL.clear(); highlight(); syncSel(); }
+function selTudo(){
+SEL.clear(); PECAS.forEach(k=>{ if(G[k]&&!OFF.has(k)) SEL.add(k); });
+highlight(); syncSel();
+}
+function zeraGiro(){ if(precisaSel())return; SEL.forEach(k=>ST[k].q=[0,0,0,1]); syncSel(); applyX(); }
+function zeraPos(){ if(precisaSel())return; SEL.forEach(k=>{ST[k].tx=0;ST[k].ty=0;ST[k].tz=0;}); syncSel(); applyX(); }
+SKEYS.forEach(k=>document.getElementById("s_"+k).addEventListener("input",e=>{
+if(SEL.size!==1) return;
+ST[selArr()[0]][k]=parseFloat(e.target.value); syncSel(); applyX();
+}));
+function pick(e){
+const r=renderer.domElement.getBoundingClientRect();
+ndc.x=((e.clientX-r.left)/r.width)*2-1; ndc.y=-((e.clientY-r.top)/r.height)*2+1;
+ray.setFromCamera(ndc,cam);
+for(const h of ray.intersectObjects(root.children,true))
+if(h.object.userData && h.object.userData.sel) return h.object.userData.sel;
+return null;
+}
+function estado(){
+const o={_peca:"VAHLE WS1F85-50-90-K",_versao:VERSAO,_unidade:"mm / graus",
+_pecas_a_imprimir:"1 travessa + 2 corpos identicos",cotas:{},montagem:{},exibir:{}};
+dims.forEach(id=>o.cotas[id]=P[id]);
+PECAS.forEach(t=>o.montagem[t]=Object.assign({},ST[t]));
+flags.forEach(id=>o.exibir[id]=P[id]);
+o.apagadas=[...OFF];
+return o;
+}
+function dump(){ const el=document.getElementById("dump"); if(el) el.value=JSON.stringify(estado(),null,1); }
+function salvar(){
+const b=new Blob([JSON.stringify(estado(),null,2)],{type:"application/json"});
+const a=document.createElement("a"); a.href=URL.createObjectURL(b);
+a.download="carrinho_medidas.json"; document.body.appendChild(a); a.click(); a.remove();
+setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+aviso("Arquivo baixado. Guarde — é a sua medição.");
+}
+function copiar(){
+const t=document.getElementById("dump"); t.select(); t.setSelectionRange(0,999999);
+try{ document.execCommand("copy"); aviso("Copiado. Cole na conversa."); }
+catch(err){ aviso("Não consegui copiar — selecione e copie na mão."); }
+}
+function carregar(ev){
+const f=ev.target.files[0]; if(!f) return;
+const rd=new FileReader();
+rd.onload=()=>{
+try{
+const o=JSON.parse(rd.result);
+Object.entries(o.cotas||{}).forEach(([k,v])=>{const el=document.getElementById(k); if(el) el.value=v;});
+Object.entries(o.exibir||{}).forEach(([k,v])=>{const el=document.getElementById(k); if(el) el.checked=!!v;});
+Object.entries(o.montagem||{}).forEach(([k,v])=>{ if(ST[k]) Object.assign(ST[k],v); });
+OFF.clear(); (o.apagadas||[]).forEach(t=>OFF.add(t));
+read(); build(); syncSel(); aviso("Medições recuperadas.");
+}catch(err){ aviso("Arquivo inválido."); }
+ev.target.value="";
+};
+rd.readAsText(f);
+}
+function aviso(t){
+const el=document.getElementById("saved"); el.textContent=t;
+clearTimeout(aviso._t); aviso._t=setTimeout(()=>el.textContent="",4000);
+}
+function checks(){
+const out=[];
+if(P.corpo_E < P.roda_larg+6)
+out.push(`<div class="w"><b>Corpo estreito demais.</b> Mínimo ${(P.roda_larg+6).toFixed(1)} mm.</div>`);
+if(P.sep>0 && P.sep < P.corpo_Wt+2)
+out.push(`<div class="w"><b>Os dois corpos se batem.</b> Separação mínima ≈ ${(P.corpo_Wt+2).toFixed(1)} mm
+(ou eles têm que ser mais estreitos no topo).</div>`);
+if(P.sep/2 + P.corpo_Wt/2 > P.trav_L/2 + 6)
+out.push(`<div class="w"><b>Os corpos passam da travessa.</b> Aumente o comprimento ou junte as articulações.</div>`);
+if(P.fenda_W < P.cabo_D+2)
+out.push(`<div class="w"><b>Fenda estreita para o cabo.</b> Mínimo ≈ ${(P.cabo_D+2).toFixed(1)} mm.</div>`);
+if(P.furo_2 + P.furo_D/2 + 3 > P.trav_L/2)
+out.push(`<div class="w"><b>Furo externo muito na ponta</b> — foi ali que a travessa rompeu.</div>`);
+if(OFF.size) out.push(`<div class="q"><b>Peças apagadas:</b> ${[...OFF].map(t=>NOME[t]).join(", ")}.
+Elas continuam no arquivo salvo — "restaurar tudo" traz de volta.</div>`);
+if(!out.length) out.push(`<div class="ok">Geometria coerente. Vão entre eixos das roldanas:
+<b>${P.sep.toFixed(0)} mm</b>.</div>`);
+const alturaTotal = P.trav_H/2 + P.garfo_H - 6 + P.roda_Y + 4 + P.roda_De/2;
+if (alturaTotal > ENV.C + 1)
+out.push(`<div class="w"><b>Passa da altura C do catálogo.</b> ${alturaTotal.toFixed(1)} mm
+contra ${ENV.C} mm. Baixe o eixo da roldana ou o garfo.</div>`);
+if (P.trav_L > ENV.A + 1)
+out.push(`<div class="w"><b>Travessa maior que o comprimento A</b> (${ENV.A} mm do catálogo).</div>`);
+if (P.corpo_E > ENV.B + 1)
+out.push(`<div class="w"><b>Corpo mais largo que a base B</b> (${ENV.B} mm do catálogo).</div>`);
+out.push(`<div class="q"><b>Ainda em aberto:</b> (1) se os dois corpos giram em parafusos
+separados (como está) ou num pino único — nesse caso ponha a <i>separação</i> em 0;
+(2) o Ø do cabo de aço não está na ficha — os 6 mm de lá são a espessura do
+<i>cabo elétrico</i> que vai na sela, não do cabo de aço.</div>`);
+document.getElementById("warn").innerHTML=out.join("");
+}
+function read(){
+dims.forEach(id=>{
+const el=document.getElementById(id); if(!el) return;
+P[id]=parseFloat(el.value);
+const v=el.parentElement.querySelector(".v"); if(v) v.textContent=P[id].toFixed(1);
+});
+flags.forEach(id=>P[id]=document.getElementById(id).checked);
+dump();
+}
+dims.forEach(id=>document.getElementById(id).addEventListener("input",()=>{read();build();}));
+flags.forEach(id=>document.getElementById(id).addEventListener("change",()=>{read();build();}));
+let selMode=true, gradeOn=true, grade=null;
+function selArr(){ return [...SEL]; }
+scene.children.forEach(o=>{ if(o.type==="GridHelper") grade=o; });
+function passoM(){ const v=parseFloat(document.getElementById("passoMov").value); return isFinite(v)?v:1; }
+function passoG(){ const v=parseFloat(document.getElementById("passoGir").value); return isFinite(v)?v:15; }
+function setPasso(m,g){
+document.getElementById("passoMov").value=m;
+document.getElementById("passoGir").value=g;
+}
+function precisaSel(){
+if(!SEL.size){ aviso("Selecione ao menos uma peça (clique nela na cena)."); return true; }
+return false;
+}
+function mover(sx,sy,sz){
+if(precisaSel()) return;
+const p=passoM();
+SEL.forEach(k=>{ const s=ST[k];
+s.tx=clamp(s.tx+sx*p,-200,200);
+s.ty=clamp(s.ty+sy*p,-200,200);
+s.tz=clamp(s.tz+sz*p,-200,200); });
+syncSel(); applyX(); delta();
+}
+function girarQ(q){
+const arr=selArr().filter(k=>G[k]&&G[k].userData);
+if(!arr.length) return;
+const c=new THREE.Vector3(), pos={};
+arr.forEach(k=>{ const g=G[k],st=ST[k];
+pos[k]=new THREE.Vector3(g.userData.bx+st.tx,g.userData.by+st.ty,g.userData.bz+st.tz);
+c.add(pos[k]); });
+c.divideScalar(arr.length);
+arr.forEach(k=>{ const g=G[k],st=ST[k];
+if(arr.length>1){
+const np=pos[k].clone().sub(c).applyQuaternion(q).add(c);
+st.tx=np.x-g.userData.bx; st.ty=np.y-g.userData.by; st.tz=np.z-g.userData.bz;
+}
+const qc=new THREE.Quaternion(st.q[0],st.q[1],st.q[2],st.q[3]);
+const qn=q.clone().multiply(qc);
+st.q=[qn.x,qn.y,qn.z,qn.w]; });
+syncSel(); applyX(); delta();
+}
+function girar(eixo,dir){
+if(precisaSel()) return;
+const a=THREE.MathUtils.degToRad(passoG()*dir);
+const ax=eixo==="x"?new THREE.Vector3(1,0,0)
+:eixo==="y"?new THREE.Vector3(0,1,0)
+:new THREE.Vector3(0,0,1);
+girarQ(new THREE.Quaternion().setFromAxisAngle(ax,a));
+}
+function zerarTudo(){
+if(precisaSel()) return;
+SEL.forEach(k=>ST[k]=z()); syncSel(); applyX(); delta();
+aviso(SEL.size>1 ? SEL.size+" peças devolvidas à origem." : "Peça devolvida à origem.");
+}
+function delta(){
+const el=document.getElementById("deltaTxt"); if(!el) return;
+if(!SEL.size){ el.textContent="\u0394 0"; return; }
+const s=ST[selArr()[0]];
+const e=new THREE.Euler().setFromQuaternion(
+new THREE.Quaternion(s.q[0],s.q[1],s.q[2],s.q[3]),"XYZ");
+const d=Math.hypot(s.tx,s.ty,s.tz);
+el.textContent="\u0394 "+d.toFixed(2)+" mm | "
++THREE.MathUtils.radToDeg(e.x).toFixed(0)+"\u00b0 "
++THREE.MathUtils.radToDeg(e.y).toFixed(0)+"\u00b0 "
++THREE.MathUtils.radToDeg(e.z).toFixed(0)+"\u00b0";
+}
+function irPara(){
+const v=document.getElementById("goto").value.split(/[ ,;]+/).map(parseFloat);
+if(v.length>=1&&isFinite(v[0])) panX=v[0];
+if(v.length>=2&&isFinite(v[1])) panY=v[1];
+if(v.length>=3&&isFinite(v[2])) rotY=THREE.MathUtils.degToRad(v[2]);
+if(v.length>=4&&isFinite(v[3])) rotX=THREE.MathUtils.degToRad(-v[3]);
+if(v.length>=5&&isFinite(v[4])&&v[4]>0) dist=280*(100/v[4]);
+aviso("Câmera reposicionada.");
+}
+function captura(){
+renderer.render(scene,cam);
+renderer.domElement.toBlob(b=>{
+const a=document.createElement("a"); a.href=URL.createObjectURL(b);
+a.download="carrinho_vista.png"; document.body.appendChild(a); a.click(); a.remove();
+setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+});
+aviso("Captura salva.");
+}
+function apagar(){
+if(precisaSel()) return;
+const n=SEL.size, nomes=selArr().map(k=>NOME[k].split(" (")[0]).join(", ");
+SEL.forEach(k=>{ OFF.add(k); if(G[k]) G[k].visible=false; });
+deselect();
+aviso(nomes+(n>1?" apagadas.":" apagada.")+" Use \u201crestaurar tudo\u201d para voltar.");
+checks();
+}
+function restaurar(){
+if(!OFF.size){ aviso("Nada apagado."); return; }
+OFF.clear();
+PECAS.forEach(t=>{ if(G[t]) G[t].visible=true; });
+aviso("Peças restauradas."); checks();
+}
+function alinharCabo(){
+if(!G.cabo||!G.corpoA||!G.corpoB){ aviso("Ligue o cabo e os dois corpos primeiro."); return; }
+const pts=["corpoA","corpoB"].map(k=>{
+const g=G[k], st=ST[k];
+const local=new THREE.Vector3(0, P.roda_Y+4+P.roda_Dg/2, 0);
+local.applyQuaternion(new THREE.Quaternion(st.q[0],st.q[1],st.q[2],st.q[3]));
+return local.add(new THREE.Vector3(g.userData.bx+st.tx, g.userData.by+st.ty, g.userData.bz+st.tz));
+});
+const meio=pts[0].clone().add(pts[1]).multiplyScalar(.5);
+let dir=pts[1].clone().sub(pts[0]);
+if(dir.lengthSq()<1e-6) dir=new THREE.Vector3(1,0,0);
+dir.normalize();
+const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1,0,0),dir);
+const b=G.cabo.userData;
+ST.cabo.q=[q.x,q.y,q.z,q.w];
+ST.cabo.tx=meio.x-b.bx; ST.cabo.ty=meio.y-b.by; ST.cabo.tz=meio.z-b.bz;
+applyX(); syncSel();
+const vao=pts[0].distanceTo(pts[1]);
+aviso("Cabo alinhado. Vão entre as gargantas: "+vao.toFixed(1)+" mm.");
+}
+function toggleHud(){
+const h=document.getElementById("hud"); h.classList.toggle("min");
+document.getElementById("hudArrow").innerHTML = h.classList.contains("min")?"\u25b2":"\u25bc";
+}
+function toggleGrade(){ if(grade){ gradeOn=!gradeOn; grade.visible=gradeOn; } }
+function toggleSelMode(){
+selMode=!selMode;
+document.getElementById("btSel").className = selMode?"on":"";
+if(!selMode) deselect();
+}
+let rotX=-.35,rotY=.6,dist=280,panX=0,panY=12,drag=null,lx=0,ly=0,moved=false;
+function setView(v){
+if(v==="iso"){rotX=-.35;rotY=.6;}
+if(v==="front"){rotX=0;rotY=0;}
+if(v==="side"){rotX=0;rotY=Math.PI/2;}
+if(v==="top"){rotX=1.5;rotY=0;}
+dist=280;
+}
+renderer.domElement.addEventListener("pointerdown",e=>{
+drag=e.button;lx=e.clientX;ly=e.clientY;moved=false;
+renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener("pointerup",e=>{
+if(drag===0&&!moved&&selMode){
+const add=e.shiftKey||e.ctrlKey||e.metaKey;
+const k=pick(e);
+if(k&&!OFF.has(k)) select(k,add);
+else if(!add) deselect();
+}
+drag=null;
+});
+renderer.domElement.addEventListener("pointermove",e=>{
+if(drag===null) return;
+const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+if(Math.abs(dx)+Math.abs(dy)>2) moved=true;
+if(drag===0&&SEL.size){
+let m=modo;
+if(e.shiftKey) m="mov";
+if(e.ctrlKey||e.metaKey) m="lat";
+if(m==="mov"||m==="lat"){
+SEL.forEach(k=>{ const st=ST[k];
+st.tx=clamp(st.tx+dx*.35,-200,200);
+if(m==="lat") st.tz=clamp(st.tz-dy*.35,-200,200);
+else          st.ty=clamp(st.ty-dy*.35,-200,200); });
+syncSel(); applyX();
+} else {
+girarQ(new THREE.Quaternion().setFromEuler(
+new THREE.Euler(THREE.MathUtils.degToRad(dy*.6),
+THREE.MathUtils.degToRad(dx*.6),0,"XYZ")));
+}
+} else if(drag===0){ rotY+=dx*.008; rotX+=dy*.008; rotX=Math.max(-1.55,Math.min(1.55,rotX)); }
+else { panX-=dx*.35; panY+=dy*.35; }
+});
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+renderer.domElement.addEventListener("contextmenu",e=>e.preventDefault());
+renderer.domElement.addEventListener("wheel",e=>{
+dist*=(1+Math.sign(e.deltaY)*.09); dist=Math.max(70,Math.min(900,dist)); e.preventDefault();
+},{passive:false});
+function resize(){
+const w=view.clientWidth,h=view.clientHeight;
+renderer.setSize(w,h); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+cam.aspect=w/h; cam.updateProjectionMatrix();
+}
+window.addEventListener("resize",resize);
+window.addEventListener("keydown",e=>{
+if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA") return;
+if((e.key==="Delete"||e.key==="Backspace") && SEL.size){ e.preventDefault(); apagar(); }
+if((e.key==="a"||e.key==="A") && (e.ctrlKey||e.metaKey)){ e.preventDefault(); selTudo(); }
+if(e.key==="Escape") deselect();
+});
+function loop(){
+requestAnimationFrame(loop);
+cam.position.set(panX+dist*Math.cos(rotX)*Math.sin(rotY),
+panY+dist*Math.sin(-rotX),
+dist*Math.cos(rotX)*Math.cos(rotY));
+cam.lookAt(panX,panY,0);
+renderer.render(scene,cam);
+}
+read(); build(); resize(); setView("iso"); loop();
+</script>
+</body>
+</html>
